@@ -1,15 +1,41 @@
 [app]
+# App basic info
+title = Vibrotactile Music App
+package.name = vibrotactileapp
+package.domain = org.example.vibrotactileapp
 
-title = VibrotactileApp
-package.name = vibrotactile
-package.domain = org.example
+# Source code settings
 source.dir = .
-source.include_exts = py,png,jpg,kv,mid
-version = 1.0
-requirements = kivy==2.2.1,mido==1.2.10,pygame,jnius
-orientation = portrait
-android.permissions = INTERNET, BLUETOOTH, BLUETOOTH_ADMIN, ACCESS_WIFI_STATE, CHANGE_WIFI_STATE, ACCESS_NETWORK_STATE
-android.api = 31
+source.include_exts = py,png,jpg,kv,atlas,mid,midi
+
+# Version
+version = 0.1
+version.regex = __version__ = ['"]([^'"]*)['"]
+version.filename = %(source.dir)s/main.py
+
+# Requirements - IMPORTANT: Matches your app's dependencies
+requirements = python3,kivy,mido,jnius,android
+
+# Android specific
+android.permissions = BLUETOOTH,BLUETOOTH_ADMIN,ACCESS_WIFI_STATE,CHANGE_WIFI_STATE,INTERNET,ACCESS_NETWORK_STATE,WRITE_EXTERNAL_STORAGE,READ_EXTERNAL_STORAGE
+android.api = 30
 android.minapi = 21
-android.arch = arm64-v8a
-p4a.branch = develop
+android.sdk = 30
+android.ndk = 23b
+android.gradle_dependencies = 
+
+# Icon (optional)
+#icon.filename = %(source.dir)s/assets/icon.png
+
+# Orientation
+orientation = portrait
+
+# Services (if needed for background tasks)
+#android.add_src = 
+
+[buildozer]
+# Buildozer log level
+log_level = 2
+
+# Cache directory
+#cache_dir = .buildozer_cache
