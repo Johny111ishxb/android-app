@@ -47,26 +47,9 @@ jobs:
           pkg-config \
           cmake \
           libltdl-dev \
-          libffi-dev \
-          libssl-dev \
           ccache \
-          libncurses5:i386 \
-          libstdc++6:i386 \
-          libgtk2.0-0:i386 \
-          libpangox-1.0-0:i386 \
-          libpangoxft-1.0-0:i386 \
-          libidn11:i386 \
-          python2.7 \
-          python2.7-dev \
-          openjdk-8-jdk \
-          unzip \
           zlib1g-dev \
-          libncurses5-dev \
-          libncursesw5-dev \
-          libtinfo5 \
-          cmake \
-          libffi-dev \
-          libssl-dev
+          libtinfo5
     
     - name: Set JAVA_HOME
       run: |
