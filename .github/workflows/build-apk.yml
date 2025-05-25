@@ -13,7 +13,6 @@ jobs:
       ANDROID_SDK_ROOT: /opt/android-sdk
       ANDROID_HOME: /opt/android-sdk
       ANDROIDSDK: /opt/android-sdk
-      PATH: /opt/android-sdk/platform-tools:/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/tools:/opt/android-sdk/tools/bin:${{ env.PATH }}
 
     steps:
     - name: Check out code
@@ -53,14 +52,12 @@ jobs:
         mv /opt/android-sdk/cmdline-tools-latest /opt/android-sdk/cmdline-tools/latest || true
         yes | /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=/opt/android-sdk --licenses
         /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=/opt/android-sdk "platform-tools" "platforms;android-31" "build-tools;31.0.0"
-        echo "Android SDK installed"
+        echo "/opt/android-sdk/platform-tools" >> $GITHUB_PATH
+        echo "/opt/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
+        echo "/opt/android-sdk/tools" >> $GITHUB_PATH
+        echo "/opt/android-sdk/tools/bin" >> $GITHUB_PATH
 
     - name: Build APK
-      env:
-        ANDROID_SDK_ROOT: /opt/android-sdk
-        ANDROID_HOME: /opt/android-sdk
-        ANDROIDSDK: /opt/android-sdk
-        PATH: /opt/android-sdk/platform-tools:/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/tools:/opt/android-sdk/tools/bin:${{ env.PATH }}
       run: |
         buildozer -v android debug
 
