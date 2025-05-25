@@ -35,53 +35,58 @@ jobs:
           libssl-dev \
           zlib1g-dev \
           libncurses5-dev \
-          autotools-dev \
-          autoconf \
-          libtool \
-          pkg-config \
-          cmake
+          cmake \
+          ccache
     
-    - name: Set up environment variables
+    - name: Set up Android SDK
       run: |
-        echo "JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64" >> $GITHUB_ENV
-        echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
-        echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
-        echo "PATH=$PATH:$HOME/android-sdk/cmdline-tools/latest/bin:$HOME/android-sdk/platform-tools" >> $GITHUB_ENV
-    
-    - name: Setup Android SDK
-      run: |
-        mkdir -p $HOME/android-sdk/cmdline-tools
-        cd $HOME/android-sdk/cmdline-tools
+        export ANDROID_HOME=$HOME/android-sdk
+        export ANDROID_SDK_ROOT=$ANDROID_HOME
+        mkdir -p $ANDROID_HOME
+        cd $ANDROID_HOME
+        
+        # Download and install command line tools
         wget -q https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
         unzip -q commandlinetools-linux-8512546_latest.zip
-        mv cmdline-tools latest
-        rm commandlinetools-linux-8512546_latest.zip
-        yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses
-        $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager "platforms;android-30" "build-tools;30.0.3" "platform-tools" "ndk;23.1.7779620"
+        mkdir -p cmdline-tools/latest
+        mv cmdline-tools/* cmdline-tools/latest/ || true
+        
+        # Set environment variables
+        export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
+        echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
+        echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
+        echo "PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools" >> $GITHUB_ENV
+        
+        # Accept licenses and install SDK components
+        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
+        $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-30" "build-tools;30.0.3" "platform-tools" "ndk;23.1.7779620"
+    
+    - name: Set up Java 11 environment
+      run: |
+        echo "JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64" >> $GITHUB_ENV
     
     - name: Install Python dependencies
       run: |
-        python -m pip install --upgrade pip setuptools wheel
+        python -m pip install --upgrade pip wheel setuptools
         python -m pip install buildozer cython==0.29.33
-        pip install -r requirements.txt
+        python -m pip install kivy
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     
-    - name: Cache Buildozer dependencies
+    - name: Cache Buildozer directory
       uses: actions/cache@v4
       with:
-        path: |
-          ~/.buildozer
-          .buildozer
+        path: .buildozer
         key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
         restore-keys: |
           ${{ runner.os }}-buildozer-
     
-    - name: Build APK with Buildozer
+    - name: Build Android APK
       run: |
         buildozer android debug
       env:
-        ANDROID_HOME: ${{ env.ANDROID_SDK_ROOT }}
+        ANDROID_HOME: ${{ env.ANDROID_HOME }}
         ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
-        JAVA_HOME: ${{ env.JAVA_HOME }}
+        JAVA_HOME: /usr/lib/jvm/java-11-openjdk-amd64
     
     - name: Upload APK artifacts
       uses: actions/upload-artifact@v4
@@ -90,13 +95,8 @@ jobs:
         path: bin/*.apk
         retention-days: 30
     
-    - name: Create Release
-      if: startsWith(github.ref, 'refs/tags/')
-      uses: softprops/action-gh-release@v2
-      with:
-        files: bin/*.apk
-        name: Release ${{ github.ref_name }}
-        draft: false
-        prerelease: false
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    - name: List build output
+      run: |
+        echo "Build completed. Contents:"
+        ls -la bin/ || echo "No bin directory"
+        find . -name "*.apk" -type f || echo "No APK files found"
