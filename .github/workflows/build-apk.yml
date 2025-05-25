@@ -93,10 +93,6 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-buildozer-
     
-    - name: Initialize Buildozer
-      run: |
-        buildozer init || echo "Buildozer already initialized"
-    
     - name: Build Android APK
       run: |
         buildozer android debug
