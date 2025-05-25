@@ -32,6 +32,10 @@ jobs:
       run: |
         python3 -m pip install --upgrade pip setuptools wheel Cython virtualenv buildozer
 
+    - name: Preinstall setuptools/wheel/Cython for python-for-android
+      run: |
+        pip install --upgrade pip setuptools wheel Cython
+
     - name: Build APK
       run: |
         buildozer -v android debug
