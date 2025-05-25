@@ -1,68 +1,147 @@
-name: Build Kivy APK
+name: Build Android APK
 
 on:
   push:
-    branches: [ main ]
-  workflow_dispatch:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:  # Allows manual trigger from GitHub UI
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
-
-    env:
-      ANDROID_SDK_ROOT: /opt/android-sdk
-      ANDROID_HOME: /opt/android-sdk
-      ANDROIDSDK: /opt/android-sdk
-
+  build-android:
+    runs-on: ubuntu-20.04
+    
     steps:
-    - name: Check out code
-      uses: actions/checkout@v4
-
-    - name: Set up Python
-      uses: actions/setup-python@v5
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v4
       with:
-        python-version: '3.10'
-
+        python-version: '3.9'
+    
     - name: Install system dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y \
-          python3-pip python3-setuptools python3-wheel \
-          build-essential git openjdk-17-jdk unzip zip \
-          libssl-dev libffi-dev libsqlite3-dev zlib1g-dev \
-          libbz2-dev libreadline-dev libncurses5-dev libgdbm-dev liblzma-dev \
-          libtool automake autoconf pkg-config
-
-    - name: Upgrade pip and install buildozer
+          build-essential \
+          git \
+          unzip \
+          openjdk-11-jdk \
+          python3-pip \
+          python3-dev \
+          python3-setuptools \
+          libffi-dev \
+          libssl-dev \
+          libbz2-dev \
+          libsqlite3-dev \
+          libncurses5-dev \
+          libncursesw5-dev \
+          liblzma-dev \
+          libgdbm-dev \
+          uuid-dev \
+          libreadline-dev \
+          tk-dev \
+          autotools-dev \
+          autoconf \
+          pkg-config \
+          cmake \
+          libltdl-dev \
+          libffi-dev \
+          libssl-dev \
+          ccache \
+          libncurses5:i386 \
+          libstdc++6:i386 \
+          libgtk2.0-0:i386 \
+          libpangox-1.0-0:i386 \
+          libpangoxft-1.0-0:i386 \
+          libidn11:i386 \
+          python2.7 \
+          python2.7-dev \
+          openjdk-8-jdk \
+          unzip \
+          zlib1g-dev \
+          libncurses5-dev \
+          libncursesw5-dev \
+          libtinfo5 \
+          cmake \
+          libffi-dev \
+          libssl-dev
+    
+    - name: Set JAVA_HOME
       run: |
-        python3 -m pip install --upgrade pip setuptools wheel Cython virtualenv buildozer
-
-    - name: Preinstall setuptools/wheel/Cython for python-for-android
+        echo "JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64" >> $GITHUB_ENV
+        echo "PATH=$PATH:/usr/lib/jvm/java-11-openjdk-amd64/bin" >> $GITHUB_ENV
+    
+    - name: Setup Android SDK
       run: |
-        pip install --upgrade pip setuptools wheel Cython
-
-    - name: Install Android SDK Command Line Tools and Build Tools
+        wget -q https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
+        unzip -q commandlinetools-linux-8512546_latest.zip
+        sudo mkdir -p /opt/android-sdk/cmdline-tools
+        sudo mv cmdline-tools /opt/android-sdk/cmdline-tools/latest
+        sudo chown -R $USER:$USER /opt/android-sdk
+        export ANDROID_SDK_ROOT=/opt/android-sdk
+        export PATH=$PATH:/opt/android-sdk/cmdline-tools/latest/bin
+        echo "ANDROID_SDK_ROOT=/opt/android-sdk" >> $GITHUB_ENV
+        echo "PATH=$PATH:/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-tools" >> $GITHUB_ENV
+        yes | /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses
+        /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager "platforms;android-30" "build-tools;30.0.3" "platform-tools"
+    
+    - name: Install Python dependencies
       run: |
-        sudo mkdir -p /opt/android-sdk
-        sudo chown $USER:$USER /opt/android-sdk
-        wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip
-        unzip -q cmdline-tools.zip -d /opt/android-sdk/
-        mkdir -p /opt/android-sdk/cmdline-tools
-        mv /opt/android-sdk/cmdline-tools /opt/android-sdk/cmdline-tools/latest || true
-        mv /opt/android-sdk/cmdline-tools-latest /opt/android-sdk/cmdline-tools/latest || true
-        yes | /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=/opt/android-sdk --licenses
-        /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager --sdk_root=/opt/android-sdk "platform-tools" "platforms;android-31" "build-tools;31.0.0"
-        echo "/opt/android-sdk/platform-tools" >> $GITHUB_PATH
-        echo "/opt/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
-        echo "/opt/android-sdk/tools" >> $GITHUB_PATH
-        echo "/opt/android-sdk/tools/bin" >> $GITHUB_PATH
-
-    - name: Build APK
-      run: |
-        buildozer -v android debug
-
-    - name: Upload APK
-      uses: actions/upload-artifact@v4
+        python -m pip install --upgrade pip wheel setuptools
+        python -m pip install buildozer cython==0.29.33
+        python -m pip install kivy[base] kivymd
+        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    
+    - name: Cache Buildozer global directory
+      uses: actions/cache@v3
       with:
-        name: vibrotactile-apk
+        path: ~/.buildozer
+        key: ${{ runner.os }}-buildozer-global-${{ hashFiles('buildozer.spec') }}
+        restore-keys: |
+          ${{ runner.os }}-buildozer-global-
+    
+    - name: Cache Buildozer directory
+      uses: actions/cache@v3
+      with:
+        path: .buildozer
+        key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
+        restore-keys: |
+          ${{ runner.os }}-buildozer-
+    
+    - name: Initialize Buildozer
+      run: |
+        buildozer init || echo "Buildozer already initialized"
+    
+    - name: Build Android APK
+      run: |
+        buildozer android debug
+      env:
+        GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx2048m -XX:MaxPermSize=512m"
+    
+    - name: Upload APK artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: android-apk-debug
         path: bin/*.apk
+        retention-days: 30
+    
+    - name: List generated files (for debugging)
+      run: |
+        echo "Contents of bin directory:"
+        ls -la bin/ || echo "No bin directory found"
+        echo "Contents of .buildozer directory:"
+        ls -la .buildozer/ || echo "No .buildozer directory found"
+    
+    # Optional: Create a release if this is a tagged commit
+    - name: Create Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v1
+      with:
+        files: bin/*.apk
+        name: Release ${{ github.ref_name }}
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
