@@ -27,55 +27,72 @@ jobs:
           build-essential \
           git \
           unzip \
-          openjdk-11-jdk \
+          openjdk-8-jdk \
           python3-pip \
           python3-dev \
           python3-setuptools \
           libffi-dev \
           libssl-dev \
-          zlib1g-dev \
+          libbz2-dev \
+          libsqlite3-dev \
           libncurses5-dev \
+          libncursesw5-dev \
+          liblzma-dev \
+          libgdbm-dev \
+          uuid-dev \
+          libreadline-dev \
+          tk-dev \
+          autotools-dev \
+          autoconf \
+          pkg-config \
           cmake \
-          ccache
+          libltdl-dev \
+          ccache \
+          zlib1g-dev \
+          libtinfo5 \
+          zip
     
-    - name: Set up Android SDK
+    - name: Set JAVA_HOME to JDK 8
       run: |
-        export ANDROID_HOME=$HOME/android-sdk
-        export ANDROID_SDK_ROOT=$ANDROID_HOME
-        mkdir -p $ANDROID_HOME
-        cd $ANDROID_HOME
-        
-        # Download and install command line tools
+        echo "JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64" >> $GITHUB_ENV
+        echo "/usr/lib/jvm/java-8-openjdk-amd64/bin" >> $GITHUB_PATH
+    
+    - name: Setup Android SDK and NDK
+      run: |
+        # Download and setup Android SDK
+        mkdir -p $HOME/android-sdk
+        cd $HOME/android-sdk
         wget -q https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
         unzip -q commandlinetools-linux-8512546_latest.zip
         mkdir -p cmdline-tools/latest
-        mv cmdline-tools/* cmdline-tools/latest/ || true
+        mv cmdline-tools/* cmdline-tools/latest/ 2>/dev/null || true
         
         # Set environment variables
+        export ANDROID_HOME=$HOME/android-sdk
+        export ANDROID_SDK_ROOT=$HOME/android-sdk
         export PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools
-        echo "ANDROID_HOME=$ANDROID_HOME" >> $GITHUB_ENV
-        echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> $GITHUB_ENV
-        echo "PATH=$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools" >> $GITHUB_ENV
         
-        # Accept licenses and install SDK components
-        yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses
-        $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager "platforms;android-30" "build-tools;30.0.3" "platform-tools" "ndk;23.1.7779620"
-    
-    - name: Set up Java 11 environment
-      run: |
-        echo "JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64" >> $GITHUB_ENV
+        echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
+        echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
+        echo "$HOME/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
+        echo "$HOME/android-sdk/platform-tools" >> $GITHUB_PATH
+        
+        # Accept licenses and install packages
+        yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses
+        $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager "platforms;android-30" "build-tools;30.0.3" "platform-tools" "ndk;23.1.7779620"
     
     - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip wheel setuptools
         python -m pip install buildozer cython==0.29.33
         python -m pip install kivy
-        if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     
-    - name: Cache Buildozer directory
+    - name: Cache Buildozer directories
       uses: actions/cache@v4
       with:
-        path: .buildozer
+        path: |
+          ~/.buildozer
+          .buildozer
         key: ${{ runner.os }}-buildozer-${{ hashFiles('buildozer.spec') }}
         restore-keys: |
           ${{ runner.os }}-buildozer-
@@ -86,7 +103,7 @@ jobs:
       env:
         ANDROID_HOME: ${{ env.ANDROID_HOME }}
         ANDROID_SDK_ROOT: ${{ env.ANDROID_SDK_ROOT }}
-        JAVA_HOME: /usr/lib/jvm/java-11-openjdk-amd64
+        GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx2048m -Dorg.gradle.daemon=false"
     
     - name: Upload APK artifacts
       uses: actions/upload-artifact@v4
@@ -95,8 +112,10 @@ jobs:
         path: bin/*.apk
         retention-days: 30
     
-    - name: List build output
+    - name: List build outputs
+      if: always()
       run: |
-        echo "Build completed. Contents:"
-        ls -la bin/ || echo "No bin directory"
-        find . -name "*.apk" -type f || echo "No APK files found"
+        echo "Listing bin directory:"
+        ls -la bin/ || echo "No bin directory found"
+        echo "Listing .buildozer directory:"
+        ls -la .buildozer/ || echo "No .buildozer directory found"
