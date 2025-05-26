@@ -47,23 +47,23 @@ jobs:
     
     - name: Setup Android SDK
       run: |
-        wget -q https://dl.google.com/android/repository/commandlinetools-linux-8512546_latest.zip
-        unzip -q commandlinetools-linux-8512546_latest.zip
-        sudo mkdir -p /opt/android-sdk/cmdline-tools
-        sudo mv cmdline-tools /opt/android-sdk/cmdline-tools/latest
-        sudo chown -R $USER:$USER /opt/android-sdk
-        export ANDROID_SDK_ROOT=/opt/android-sdk
-        export PATH=$PATH:/opt/android-sdk/cmdline-tools/latest/bin
-        echo "ANDROID_SDK_ROOT=/opt/android-sdk" >> $GITHUB_ENV
-        echo "PATH=$PATH:/opt/android-sdk/cmdline-tools/latest/bin:/opt/android-sdk/platform-tools" >> $GITHUB_ENV
-        yes | /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses
-        /opt/android-sdk/cmdline-tools/latest/bin/sdkmanager "platforms;android-30" "build-tools;30.0.3" "platform-tools"
+        wget -q https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip
+        unzip -q commandlinetools-linux-9477386_latest.zip
+        mkdir -p $HOME/android-sdk/cmdline-tools
+        mv cmdline-tools $HOME/android-sdk/cmdline-tools/latest
+        export ANDROID_SDK_ROOT=$HOME/android-sdk
+        export PATH=$PATH:$HOME/android-sdk/cmdline-tools/latest/bin:$HOME/android-sdk/platform-tools
+        echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
+        echo "$HOME/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
+        echo "$HOME/android-sdk/platform-tools" >> $GITHUB_PATH
+        yes | $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses || true
+        $HOME/android-sdk/cmdline-tools/latest/bin/sdkmanager "platforms;android-30" "build-tools;30.0.3" "platform-tools"
     
     - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip wheel setuptools
         python -m pip install buildozer cython==0.29.33
-        python -m pip install kivy[base] kivymd
+        python -m pip install kivy
         if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     
     - name: Cache Buildozer global directory
