@@ -36,7 +36,8 @@ jobs:
     - name: Upgrade pip and install buildozer
       run: |
         python3 -m pip install --upgrade pip setuptools wheel Cython virtualenv
-        python3 -m pip install --upgrade buildozer
+        python3 -m pip install --upgrade --user buildozer
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
 
     - name: Preinstall setuptools/wheel/Cython for python-for-android
       run: |
@@ -44,21 +45,14 @@ jobs:
 
     - name: Install Android SDK Command Line Tools and Build Tools
       run: |
-        # Download and extract command line tools
         sudo mkdir -p /opt/android-sdk/cmdline-tools
         wget -q https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip -O cmdline-tools.zip
         unzip -q cmdline-tools.zip -d cmdline-tools-tmp
         mv cmdline-tools-tmp/cmdline-tools /opt/android-sdk/cmdline-tools/latest
         rm -rf cmdline-tools.zip cmdline-tools-tmp
-
-        # Add sdkmanager etc. to PATH for this shell only
         export PATH=$PATH:/opt/android-sdk/cmdline-tools/latest/bin
-
-        # Accept licenses, install build tools and platform tools
         yes | sdkmanager --sdk_root=/opt/android-sdk --licenses
         sdkmanager --sdk_root=/opt/android-sdk "platform-tools" "platforms;android-31" "build-tools;31.0.0"
-
-        # Add to GITHUB_PATH for subsequent steps
         echo "/opt/android-sdk/platform-tools" >> $GITHUB_PATH
         echo "/opt/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
 
